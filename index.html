@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Working Capital & Cash Conversion Cycle Analyzer</title>
+  <meta name="description" content="Interactive sensitivity modeling tool for Working Capital, Cash Conversion Cycle (CCC), balance breakdowns, and liquidity optimization." />
+  <meta property="og:title" content="Working Capital & Cash Conversion Cycle Analyzer" />
+  <meta property="og:description" content="Model liquidity impacts, analyze DSO, DIO, and DPO sensitivity, and discover cash freed up." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f7ff',
+              100: '#e0effe',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+              900: '#0c4a6e',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Google Fonts for Plus Jakarta Sans & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <style>
+    /* Tabular figures for financial numbers */
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Range slider custom styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]:focus {
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: #e2e8f0;
+      border-radius: 9999px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #0f172a;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      border: 2px solid #ffffff;
+      transition: transform 0.1s ease, background-color 0.1s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #0284c7;
+    }
+    input[type=range]::-moz-range-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: #e2e8f0;
+      border-radius: 9999px;
+    }
+    input[type=range]::-moz-range-thumb {
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #0f172a;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      border: 2px solid #ffffff;
+      transition: transform 0.1s ease, background-color 0.1s ease;
+    }
+    input[type=range]::-moz-range-thumb:hover {
+      transform: scale(1.15);
+      background: #0284c7;
+    }
+
+    /* Tooltip popup animation */
+    .tooltip-content {
+      visibility: hidden;
+      opacity: 0;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      transform: translateY(4px);
+      pointer-events: none;
+    }
+    .has-tooltip:hover .tooltip-content,
+    .has-tooltip:focus-within .tooltip-content,
+    .tooltip-content.is-open {
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    /* Print styles for export */
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .print-shadow-none {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen flex flex-col selection:bg-sky-100 selection:text-sky-900">
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed top-5 right-5 z-50 transform translate-y-[-100px] opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-3 bg-slate-900 text-white text-xs px-4 py-3 rounded-lg shadow-lg border border-slate-700">
+    <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+    </svg>
+    <span id="toast-message">Action successful</span>
+  </div>
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-900 text-white font-mono font-bold text-sm">
+              CCC
+            </span>
+            <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-slate-900">
+              Working Capital & Cash Conversion Cycle Analyzer
+            </h1>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-500 mt-1 max-w-2xl">
+            Simulate Days Sales Outstanding (DSO), Inventory (DIO), and Payables (DPO) to quantify liquidity impacts, working capital requirements, and carrying costs.
+          </p>
+        </div>
+
+        <!-- Quick actions -->
+        <div class="flex items-center gap-2 shrink-0 no-print">
+          <button id="btn-save-baseline" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-md transition-colors" title="Lock current inputs as your new comparison baseline">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+            </svg>
+            Set As Baseline
+          </button>
+          <button id="btn-reset-defaults" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 active:bg-slate-300 rounded-md transition-colors" title="Reset all parameters to default scenario">
+            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Reset Defaults
+          </button>
+          <button id="btn-export-summary" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 active:bg-slate-950 rounded-md transition-colors shadow-sm" title="Copy text summary report to clipboard">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+            </svg>
+            Copy Summary
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+
+    <!-- Validation / Error Alert Banner (Hidden by default) -->
+    <div id="error-banner" class="hidden rounded-lg bg-amber-50 border border-amber-200 p-4 text-amber-900 text-sm flex items-start gap-3">
+      <svg class="w-5 h-5 text-amber-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+      <div class="flex-1">
+        <h3 class="font-semibold text-amber-800" id="error-title">Invalid Input Detected</h3>
+        <p class="text-amber-700 text-xs mt-0.5" id="error-desc">Please ensure all values are positive numbers. Calculations have been clamped to safe values.</p>
+      </div>
+      <button id="btn-dismiss-error" type="button" class="text-amber-700 hover:text-amber-900 text-xs font-semibold underline shrink-0">
+        Dismiss
+      </button>
+    </div>
+
+    <!-- Benchmark Presets Bar -->
+    <div class="bg-white border border-slate-200 rounded-lg p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs no-print">
+      <div class="flex items-center gap-2">
+        <svg class="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+        </svg>
+        <span class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Industry Reference Presets:</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-1.5">
+        <button type="button" data-preset="wholesale" class="btn-preset px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded transition-colors">
+          Wholesale / Dist. (55 / 40 / 35)
+        </button>
+        <button type="button" data-preset="manufacturing" class="btn-preset px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded transition-colors">
+          Manufacturing (60 / 65 / 45)
+        </button>
+        <button type="button" data-preset="retail" class="btn-preset px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded transition-colors">
+          Retail / Commerce (10 / 50 / 40)
+        </button>
+        <button type="button" data-preset="lean" class="btn-preset px-2.5 py-1 text-xs font-medium text-slate-600 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded transition-colors">
+          Lean Negative CCC (20 / 15 / 50)
+        </button>
+      </div>
+    </div>
+
+    <!-- Two-Column Main Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+      <!-- LEFT COLUMN: Inputs & Sliders (5 cols) -->
+      <section class="lg:col-span-5 bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-xs space-y-6">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Operating Financial Parameters</h2>
+            <p class="text-xs text-slate-500">Fine-tune annual figures and cycle durations</p>
+          </div>
+          <span class="text-xs font-mono text-slate-400">365-day basis</span>
+        </div>
+
+        <form id="calculator-form" class="space-y-5" onsubmit="event.preventDefault();">
+          
+          <!-- Annual Revenue -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label for="input-revenue" class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                Annual Revenue ($)
+                <span class="has-tooltip relative cursor-pointer text-slate-400 hover:text-slate-600" tabindex="0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0-4h.01"/>
+                  </svg>
+                  <span class="tooltip-content absolute left-0 bottom-full mb-2 w-64 p-2.5 bg-slate-900 text-white text-xs rounded-md shadow-xl z-40 font-normal normal-case">
+                    <strong>Annual Revenue:</strong> Total top-line sales. Used to calculate daily sales velocity ($Revenue / 365) and Accounts Receivable balance.
+                  </span>
+                </span>
+              </label>
+              <span id="label-revenue-daily" class="text-xs font-mono text-slate-500 tabular-nums">$3,288 / day</span>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-sm">$</span>
+              <input id="input-revenue" type="number" min="0" max="50000000" step="10000" value="1200000" class="w-full pl-7 pr-3 py-2 text-sm font-mono tabular-nums border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white" />
+            </div>
+            <input id="slider-revenue" type="range" min="100000" max="10000000" step="50000" value="1200000" class="w-full" aria-label="Annual Revenue Slider" />
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+              <span>$100k</span>
+              <span>$5M</span>
+              <span>$10M</span>
+            </div>
+          </div>
+
+          <!-- Cost of Goods Sold (COGS) -->
+          <div class="space-y-2 pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+              <label for="input-cogs" class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                Cost of Goods Sold (COGS) ($)
+                <span class="has-tooltip relative cursor-pointer text-slate-400 hover:text-slate-600" tabindex="0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0-4h.01"/>
+                  </svg>
+                  <span class="tooltip-content absolute left-0 bottom-full mb-2 w-64 p-2.5 bg-slate-900 text-white text-xs rounded-md shadow-xl z-40 font-normal normal-case">
+                    <strong>Cost of Goods Sold:</strong> Direct material and production expenses. Used to calculate daily cost of inventory replenishment ($COGS / 365) and Accounts Payable balance.
+                  </span>
+                </span>
+              </label>
+              <span id="label-cogs-margin" class="text-xs font-mono text-slate-500 tabular-nums">Gross Margin: 33.3%</span>
+            </div>
+            <div class="relative">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 font-mono text-sm">$</span>
+              <input id="input-cogs" type="number" min="0" max="50000000" step="10000" value="800000" class="w-full pl-7 pr-3 py-2 text-sm font-mono tabular-nums border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white" />
+            </div>
+            <input id="slider-cogs" type="range" min="50000" max="8000000" step="25000" value="800000" class="w-full" aria-label="COGS Slider" />
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+              <span>$50k</span>
+              <span>$4M</span>
+              <span>$8M</span>
+            </div>
+          </div>
+
+          <!-- Days Sales Outstanding (DSO) -->
+          <div class="space-y-2 pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+              <label for="input-dso" class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0"></span>
+                Days Sales Outstanding (DSO / AR Days)
+                <span class="has-tooltip relative cursor-pointer text-slate-400 hover:text-slate-600" tabindex="0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0-4h.01"/>
+                  </svg>
+                  <span class="tooltip-content absolute left-0 bottom-full mb-2 w-64 p-2.5 bg-slate-900 text-white text-xs rounded-md shadow-xl z-40 font-normal normal-case">
+                    <strong>DSO (Days Sales Outstanding):</strong> Average number of days required to collect payment after a sale. Lower is better. Reducing DSO frees up locked receivables into cash.
+                  </span>
+                </span>
+              </label>
+              <span id="label-ar-preview" class="text-xs font-mono text-blue-600 font-semibold tabular-nums">AR: $147,945</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <input id="input-dso" type="number" min="0" max="180" step="1" value="45" class="w-24 px-3 py-2 text-sm font-mono tabular-nums border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition-all bg-white" />
+              <span class="text-xs text-slate-500 font-medium">days</span>
+              <div class="flex-1">
+                <input id="slider-dso" type="range" min="0" max="120" step="1" value="45" class="w-full" aria-label="DSO Slider" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Days Inventory Outstanding (DIO) -->
+          <div class="space-y-2 pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+              <label for="input-dio" class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                Days Inventory Outstanding (DIO / Inventory Days)
+                <span class="has-tooltip relative cursor-pointer text-slate-400 hover:text-slate-600" tabindex="0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0-4h.01"/>
+                  </svg>
+                  <span class="tooltip-content absolute left-0 bottom-full mb-2 w-64 p-2.5 bg-slate-900 text-white text-xs rounded-md shadow-xl z-40 font-normal normal-case">
+                    <strong>DIO (Days Inventory Outstanding):</strong> Average number of days inventory sits on shelves or in warehouse before being sold. Lower DIO avoids capital stagnation and spoilage.
+                  </span>
+                </span>
+              </label>
+              <span id="label-inv-preview" class="text-xs font-mono text-amber-600 font-semibold tabular-nums">Inv: $65,753</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <input id="input-dio" type="number" min="0" max="180" step="1" value="30" class="w-24 px-3 py-2 text-sm font-mono tabular-nums border border-slate-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all bg-white" />
+              <span class="text-xs text-slate-500 font-medium">days</span>
+              <div class="flex-1">
+                <input id="slider-dio" type="range" min="0" max="120" step="1" value="30" class="w-full" aria-label="DIO Slider" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Days Payable Outstanding (DPO) -->
+          <div class="space-y-2 pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+              <label for="input-dpo" class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
+                Days Payable Outstanding (DPO / AP Days)
+                <span class="has-tooltip relative cursor-pointer text-slate-400 hover:text-slate-600" tabindex="0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0-4h.01"/>
+                  </svg>
+                  <span class="tooltip-content absolute left-0 bottom-full mb-2 w-64 p-2.5 bg-slate-900 text-white text-xs rounded-md shadow-xl z-40 font-normal normal-case">
+                    <strong>DPO (Days Payable Outstanding):</strong> Average number of days a company takes to pay its suppliers. Higher DPO acts as interest-free supplier financing and shortens CCC.
+                  </span>
+                </span>
+              </label>
+              <span id="label-ap-preview" class="text-xs font-mono text-purple-600 font-semibold tabular-nums">AP: $65,753</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <input id="input-dpo" type="number" min="0" max="180" step="1" value="30" class="w-24 px-3 py-2 text-sm font-mono tabular-nums border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all bg-white" />
+              <span class="text-xs text-slate-500 font-medium">days</span>
+              <div class="flex-1">
+                <input id="slider-dpo" type="range" min="0" max="120" step="1" value="30" class="w-full" aria-label="DPO Slider" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Borrowing / Interest Rate (%) -->
+          <div class="space-y-2 pt-2 border-t border-slate-100">
+            <div class="flex items-center justify-between">
+              <label for="input-rate" class="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                Annual Borrowing / Cost of Capital Rate (%)
+                <span class="has-tooltip relative cursor-pointer text-slate-400 hover:text-slate-600" tabindex="0">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v-4m0-4h.01"/>
+                  </svg>
+                  <span class="tooltip-content absolute left-0 bottom-full mb-2 w-64 p-2.5 bg-slate-900 text-white text-xs rounded-md shadow-xl z-40 font-normal normal-case">
+                    <strong>Short-Term Borrowing Rate:</strong> Annual APR on credit lines, invoice factoring, or weighted cost of capital used to finance working capital tied up in operations.
+                  </span>
+                </span>
+              </label>
+              <span class="text-xs text-slate-400 font-mono">Working capital interest</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="relative w-28">
+                <input id="input-rate" type="number" min="0" max="40" step="0.25" value="8.0" class="w-full pr-7 pl-3 py-2 text-sm font-mono tabular-nums border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all bg-white" />
+                <span class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 font-mono text-sm">%</span>
+              </div>
+              <div class="flex-1">
+                <input id="slider-rate" type="range" min="1" max="25" step="0.25" value="8.0" class="w-full" aria-label="Borrowing Rate Slider" />
+              </div>
+            </div>
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+              <span>1.0% (Prime)</span>
+              <span>12.0% (Line of Credit)</span>
+              <span>25.0% (Subprime)</span>
+            </div>
+          </div>
+
+          <!-- Optimization levers shortcut -->
+          <div class="pt-3 border-t border-slate-100 flex items-center justify-between no-print">
+            <span class="text-xs text-slate-500">Quick simulation action:</span>
+            <button id="btn-quick-optimize" type="button" class="text-xs font-semibold text-sky-700 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 px-3 py-1.5 rounded-md transition-colors flex items-center gap-1">
+              ⚡ Apply Lean Levers (-10 DSO, -5 DIO, +5 DPO)
+            </button>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- RIGHT COLUMN: Outputs & Metrics Dashboard (7 cols) -->
+      <section class="lg:col-span-7 space-y-6">
+
+        <!-- 3 Primary Display KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+          <!-- Card 1: Cash Conversion Cycle -->
+          <div class="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Cash Conversion Cycle</span>
+              <span id="badge-ccc-health" class="text-[11px] font-semibold px-2 py-0.5 rounded text-emerald-800 bg-emerald-100">
+                Healthy
+              </span>
+            </div>
+            <div class="mt-2 flex items-baseline gap-2">
+              <span id="display-ccc" class="text-3xl font-extrabold text-slate-900 font-mono tabular-nums">45</span>
+              <span class="text-sm font-medium text-slate-500">days</span>
+            </div>
+            <p id="display-ccc-formula" class="text-[11px] text-slate-500 font-mono mt-2 truncate">
+              45 DSO + 30 DIO - 30 DPO
+            </p>
+            <div class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+              <span>Operating Cycle:</span>
+              <span id="display-op-cycle" class="font-mono font-medium text-slate-700 tabular-nums">75 days</span>
+            </div>
+          </div>
+
+          <!-- Card 2: Net Working Capital Requirement -->
+          <div class="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Net Working Capital</span>
+              <span class="text-[11px] font-mono text-slate-400" id="badge-wc-percent">12.3% Rev</span>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1">
+              <span id="display-nwc" class="text-3xl font-extrabold text-slate-900 font-mono tabular-nums">$147,945</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-mono mt-2 truncate" id="display-nwc-breakdown">
+              AR + Inv - AP balance
+            </p>
+            <div class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+              <span>Capital tied per day:</span>
+              <span id="display-capital-day" class="font-mono font-medium text-slate-700 tabular-nums">$405 / day</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Annual Financing Carrying Cost -->
+          <div class="bg-white border border-slate-200 rounded-xl p-4 sm:p-5 shadow-xs relative overflow-hidden">
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Financing Carrying Cost</span>
+              <span class="text-[11px] font-mono text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded" id="badge-rate-echo">@ 8.0%</span>
+            </div>
+            <div class="mt-2 flex items-baseline gap-1">
+              <span id="display-carrying-cost" class="text-3xl font-extrabold text-slate-900 font-mono tabular-nums">$11,836</span>
+              <span class="text-xs text-slate-400">/ yr</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-mono mt-2 truncate">
+              Interest to finance WC
+            </p>
+            <div class="mt-3 pt-2 border-t border-slate-100 text-[11px] text-slate-500 flex justify-between">
+              <span>Daily interest drag:</span>
+              <span id="display-interest-day" class="font-mono font-medium text-slate-700 tabular-nums">$32.43 / day</span>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- What-If Scenario Delta Card (Baseline Comparison) -->
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-100 gap-2">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                What-If Scenario Delta
+                <span class="text-xs font-normal text-slate-500">(vs. Saved Baseline)</span>
+              </h3>
+              <p class="text-xs text-slate-500">Live impact of your parameter adjustments on cash flow and borrowing costs</p>
+            </div>
+            <div class="text-xs font-mono text-slate-500" id="baseline-reference-label">
+              Baseline CCC: 45 days | WC: $147,945
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            
+            <!-- Delta 1: Cash Freed Up / Consumed -->
+            <div id="delta-card-cash" class="p-3.5 rounded-lg border border-slate-200 bg-slate-50 flex flex-col justify-between transition-colors">
+              <span class="text-xs font-semibold text-slate-600" id="delta-cash-title">Cash Impact (Delta WC)</span>
+              <div class="my-1.5">
+                <span id="delta-cash-value" class="text-2xl font-bold font-mono tabular-nums text-slate-700">$0</span>
+              </div>
+              <p id="delta-cash-subtext" class="text-[11px] text-slate-500">Same as baseline</p>
+            </div>
+
+            <!-- Delta 2: Annual Financing Savings / Surcharge -->
+            <div id="delta-card-interest" class="p-3.5 rounded-lg border border-slate-200 bg-slate-50 flex flex-col justify-between transition-colors">
+              <span class="text-xs font-semibold text-slate-600" id="delta-interest-title">Carrying Cost Savings</span>
+              <div class="my-1.5">
+                <span id="delta-interest-value" class="text-2xl font-bold font-mono tabular-nums text-slate-700">$0 / yr</span>
+              </div>
+              <p id="delta-interest-subtext" class="text-[11px] text-slate-500">No interest change</p>
+            </div>
+
+            <!-- Delta 3: CCC Days Change -->
+            <div id="delta-card-ccc" class="p-3.5 rounded-lg border border-slate-200 bg-slate-50 flex flex-col justify-between transition-colors">
+              <span class="text-xs font-semibold text-slate-600">Cycle Duration Delta</span>
+              <div class="my-1.5">
+                <span id="delta-ccc-value" class="text-2xl font-bold font-mono tabular-nums text-slate-700">0 days</span>
+              </div>
+              <p id="delta-ccc-subtext" class="text-[11px] text-slate-500">Operating pace identical</p>
+            </div>
+
+          </div>
+
+          <!-- Dynamic Opportunity Rule of Thumb -->
+          <div class="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100 flex items-start gap-2.5 text-xs text-slate-600">
+            <svg class="w-4 h-4 text-sky-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span id="opportunity-callout">
+              <strong>Sensitivity Rule of Thumb:</strong> Every 1-day reduction in your Cash Conversion Cycle frees up <strong>$3,288</strong> in liquidity and saves <strong>$263/year</strong> in financing costs at your current 8.0% interest rate.
+            </span>
+          </div>
+        </div>
+
+        <!-- Working Capital Components Breakdown -->
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Working Capital Components Breakdown</h3>
+              <p class="text-xs text-slate-500">Detailed dollar balances calculated from your daily operating velocities</p>
+            </div>
+            <span class="text-xs font-mono text-slate-400">Net = (AR + Inv) - AP</span>
+          </div>
+
+          <!-- Visual Bar Representation -->
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-xs text-slate-600">
+              <span>Gross Assets Tied Up vs Supplier Offset</span>
+              <span id="bar-percentage-ratio" class="font-mono text-[11px] text-slate-500">AP covers 30.8% of assets</span>
+            </div>
+            <div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden flex">
+              <div id="bar-ar" class="bg-blue-500 h-full transition-all duration-300" style="width: 50%" title="Accounts Receivable"></div>
+              <div id="bar-inv" class="bg-amber-500 h-full transition-all duration-300" style="width: 25%" title="Inventory"></div>
+              <div id="bar-ap" class="bg-purple-500 h-full transition-all duration-300" style="width: 25%" title="Accounts Payable Offset"></div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] font-mono text-slate-500 pt-1">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500 inline-block"></span> AR Balance</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span> Inventory Balance</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500 inline-block"></span> AP (Supplier Funded)</span>
+            </div>
+          </div>
+
+          <!-- Detail Table -->
+          <div class="overflow-x-auto border border-slate-200 rounded-lg">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="py-2.5 px-3">Working Capital Line Item</th>
+                  <th class="py-2.5 px-3">Formula / Daily Velocity</th>
+                  <th class="py-2.5 px-3 text-right">Metric Days</th>
+                  <th class="py-2.5 px-3 text-right">Dollar Balance</th>
+                  <th class="py-2.5 px-3 text-right">Carrying Cost</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 font-mono tabular-nums text-slate-700">
+                <tr>
+                  <td class="py-2.5 px-3 font-sans font-medium text-slate-900 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
+                    Accounts Receivable (AR)
+                  </td>
+                  <td class="py-2.5 px-3 text-slate-500">($1.20M / 365) × DSO</td>
+                  <td id="table-dso-days" class="py-2.5 px-3 text-right font-semibold">45 d</td>
+                  <td id="table-ar-balance" class="py-2.5 px-3 text-right font-bold text-slate-900">$147,945</td>
+                  <td id="table-ar-cost" class="py-2.5 px-3 text-right text-slate-500">$11,836</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-sans font-medium text-slate-900 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                    Inventory Stock
+                  </td>
+                  <td class="py-2.5 px-3 text-slate-500">($800k / 365) × DIO</td>
+                  <td id="table-dio-days" class="py-2.5 px-3 text-right font-semibold">30 d</td>
+                  <td id="table-inv-balance" class="py-2.5 px-3 text-right font-bold text-slate-900">$65,753</td>
+                  <td id="table-inv-cost" class="py-2.5 px-3 text-right text-slate-500">$5,260</td>
+                </tr>
+                <tr>
+                  <td class="py-2.5 px-3 font-sans font-medium text-slate-900 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
+                    Less: Accounts Payable (AP)
+                  </td>
+                  <td class="py-2.5 px-3 text-slate-500">($800k / 365) × DPO</td>
+                  <td id="table-dpo-days" class="py-2.5 px-3 text-right font-semibold">30 d</td>
+                  <td id="table-ap-balance" class="py-2.5 px-3 text-right font-bold text-purple-700">($65,753)</td>
+                  <td id="table-ap-cost" class="py-2.5 px-3 text-right text-emerald-600 font-semibold">-$5,260 saved</td>
+                </tr>
+                <tr class="bg-slate-50/70 font-semibold">
+                  <td class="py-2.5 px-3 font-sans font-bold text-slate-900">
+                    Net Working Capital Required
+                  </td>
+                  <td class="py-2.5 px-3 text-slate-500 font-normal">AR + Inventory - AP</td>
+                  <td id="table-ccc-days" class="py-2.5 px-3 text-right font-bold text-slate-900">45 d (CCC)</td>
+                  <td id="table-nwc-balance" class="py-2.5 px-3 text-right font-bold text-slate-900 text-sm">$147,945</td>
+                  <td id="table-nwc-cost" class="py-2.5 px-3 text-right font-bold text-rose-600 text-sm">$11,836</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 1-Day & 5-Day Sensitivity Matrix -->
+        <div class="bg-white border border-slate-200 rounded-xl p-5 shadow-xs space-y-4">
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900">Sensitivity Matrix: Lever Comparison</h3>
+              <p class="text-xs text-slate-500">Assess which operational lever produces the biggest financial unlock</p>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            
+            <!-- Lever 1: DSO Improvement -->
+            <div class="p-3 border border-slate-200 rounded-lg bg-blue-50/30 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-blue-900">Accelerate DSO by -5 Days</span>
+                  <span class="text-[10px] font-mono text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">Collections</span>
+                </div>
+                <p class="text-[11px] text-slate-600 mt-1">Faster invoicing, early settlement discounts, automated payment reminders.</p>
+              </div>
+              <div class="mt-3 pt-2 border-t border-blue-100 flex items-center justify-between font-mono text-xs">
+                <span class="text-slate-500">Cash Unlocked:</span>
+                <span id="sens-dso-cash" class="font-bold text-emerald-700">+$16,438</span>
+              </div>
+              <div class="flex items-center justify-between font-mono text-xs">
+                <span class="text-slate-500">Interest Saved:</span>
+                <span id="sens-dso-interest" class="font-medium text-slate-700">$1,315 / yr</span>
+              </div>
+            </div>
+
+            <!-- Lever 2: DIO Improvement -->
+            <div class="p-3 border border-slate-200 rounded-lg bg-amber-50/30 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-amber-900">Trim DIO by -5 Days</span>
+                  <span class="text-[10px] font-mono text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">Inventory</span>
+                </div>
+                <p class="text-[11px] text-slate-600 mt-1">Lean buffer stock, SKU rationalization, just-in-time delivery batches.</p>
+              </div>
+              <div class="mt-3 pt-2 border-t border-amber-100 flex items-center justify-between font-mono text-xs">
+                <span class="text-slate-500">Cash Unlocked:</span>
+                <span id="sens-dio-cash" class="font-bold text-emerald-700">+$10,959</span>
+              </div>
+              <div class="flex items-center justify-between font-mono text-xs">
+                <span class="text-slate-500">Interest Saved:</span>
+                <span id="sens-dio-interest" class="font-medium text-slate-700">$877 / yr</span>
+              </div>
+            </div>
+
+            <!-- Lever 3: DPO Improvement -->
+            <div class="p-3 border border-slate-200 rounded-lg bg-purple-50/30 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-purple-900">Extend DPO by +5 Days</span>
+                  <span class="text-[10px] font-mono text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">Vendor Credit</span>
+                </div>
+                <p class="text-[11px] text-slate-600 mt-1">Negotiate Net-45/60 terms, consolidate vendor spend, align payment runs.</p>
+              </div>
+              <div class="mt-3 pt-2 border-t border-purple-100 flex items-center justify-between font-mono text-xs">
+                <span class="text-slate-500">Cash Unlocked:</span>
+                <span id="sens-dpo-cash" class="font-bold text-emerald-700">+$10,959</span>
+              </div>
+              <div class="flex items-center justify-between font-mono text-xs">
+                <span class="text-slate-500">Interest Saved:</span>
+                <span id="sens-dpo-interest" class="font-medium text-slate-700">$877 / yr</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- Educational Guide & Formula Reference Drawer -->
+    <section class="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 shadow-xs mt-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-100 gap-2">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Cash Conversion Cycle (CCC) Mathematical Framework</h2>
+          <p class="text-xs text-slate-500">Standard GAAP & corporate finance methodologies used in this engine</p>
+        </div>
+        <span class="text-xs font-mono text-slate-400">Finance Reference</span>
+      </div>
+
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-slate-600">
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+            1. Days Sales Outstanding (DSO)
+          </h4>
+          <p class="font-mono text-slate-500 text-[11px] bg-slate-50 p-1.5 rounded border border-slate-100">
+            DSO = (Accounts Receivable / Annual Revenue) × 365
+          </p>
+          <p>
+            Measures the average lag between shipping a product or completing a service and receiving cash in the bank. High DSO indicates loose credit policies or slow invoicing workflows.
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            2. Days Inventory Outstanding (DIO)
+          </h4>
+          <p class="font-mono text-slate-500 text-[11px] bg-slate-50 p-1.5 rounded border border-slate-100">
+            DIO = (Ending Inventory / COGS) × 365
+          </p>
+          <p>
+            Measures how long inventory stays in holding before conversion into customer sales. High DIO locks working capital into warehouse shelves and increases obsolescence risks.
+          </p>
+        </div>
+
+        <div class="space-y-1.5">
+          <h4 class="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+            3. Days Payable Outstanding (DPO)
+          </h4>
+          <p class="font-mono text-slate-500 text-[11px] bg-slate-50 p-1.5 rounded border border-slate-100">
+            DPO = (Accounts Payable / COGS) × 365
+          </p>
+          <p>
+            Measures how long the business takes to settle invoices with vendors. Extending DPO delays cash outflows, effectively allowing vendors to finance your working capital interest-free.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-slate-100 bg-slate-50 p-4 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span class="font-bold text-slate-900 text-xs uppercase tracking-wide">Net Cash Conversion Cycle (CCC):</span>
+          <p class="font-mono text-sm text-slate-800 mt-0.5">
+            <strong>CCC = DSO + DIO - DPO</strong> &nbsp;|&nbsp; <strong>Net Working Capital = AR + Inventory - AP</strong>
+          </p>
+          <p class="text-xs text-slate-500 mt-1">
+            A lower or negative CCC means your business turns cash into inventory and back into cash rapidly, requiring less short-term debt and unlocking self-funded enterprise growth.
+          </p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500 mt-auto no-print">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <p>Working Capital & Cash Conversion Cycle Sensitivity Analyzer &copy; 2026</p>
+      <div class="flex items-center gap-4 text-slate-400">
+        <span>Formulas: GAAP / Corporate Finance</span>
+        <span>·</span>
+        <span>Standard 365-Day Basis</span>
+        <span>·</span>
+        <button id="btn-print" type="button" class="text-slate-600 hover:text-slate-900 underline">
+          Print / PDF Export
+        </button>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Vanilla JavaScript Application Logic -->
+  <script>
+    (function () {
+      'use strict';
+
+      // Default baseline values
+      const DEFAULTS = {
+        revenue: 1200000,
+        cogs: 800000,
+        dso: 45,
+        dio: 30,
+        dpo: 30,
+        borrowingRate: 8.0,
+      };
+
+      // Benchmark presets
+      const PRESETS = {
+        wholesale: { revenue: 2500000, cogs: 1900000, dso: 55, dio: 40, dpo: 35, borrowingRate: 8.5 },
+        manufacturing: { revenue: 3200000, cogs: 2100000, dso: 60, dio: 65, dpo: 45, borrowingRate: 9.0 },
+        retail: { revenue: 1500000, cogs: 950000, dso: 10, dio: 50, dpo: 40, borrowingRate: 7.5 },
+        lean: { revenue: 2000000, cogs: 1200000, dso: 20, dio: 15, dpo: 50, borrowingRate: 8.0 },
+      };
+
+      // State
+      let state = { ...DEFAULTS };
+      let baseline = { ...DEFAULTS };
+
+      // DOM Elements - Inputs
+      const elRevenue = document.getElementById('input-revenue');
+      const elRevenueSlider = document.getElementById('slider-revenue');
+      const elCogs = document.getElementById('input-cogs');
+      const elCogsSlider = document.getElementById('slider-cogs');
+      const elDso = document.getElementById('input-dso');
+      const elDsoSlider = document.getElementById('slider-dso');
+      const elDio = document.getElementById('input-dio');
+      const elDioSlider = document.getElementById('slider-dio');
+      const elDpo = document.getElementById('input-dpo');
+      const elDpoSlider = document.getElementById('slider-dpo');
+      const elRate = document.getElementById('input-rate');
+      const elRateSlider = document.getElementById('slider-rate');
+
+      // DOM Elements - Labels & Badges
+      const elLabelRevenueDaily = document.getElementById('label-revenue-daily');
+      const elLabelCogsMargin = document.getElementById('label-cogs-margin');
+      const elLabelArPreview = document.getElementById('label-ar-preview');
+      const elLabelInvPreview = document.getElementById('label-inv-preview');
+      const elLabelApPreview = document.getElementById('label-ap-preview');
+
+      // DOM Elements - KPI Display
+      const elDisplayCcc = document.getElementById('display-ccc');
+      const elDisplayCccFormula = document.getElementById('display-ccc-formula');
+      const elDisplayOpCycle = document.getElementById('display-op-cycle');
+      const elBadgeCccHealth = document.getElementById('badge-ccc-health');
+      const elDisplayNwc = document.getElementById('display-nwc');
+      const elBadgeWcPercent = document.getElementById('badge-wc-percent');
+      const elDisplayCapitalDay = document.getElementById('display-capital-day');
+      const elDisplayCarryingCost = document.getElementById('display-carrying-cost');
+      const elBadgeRateEcho = document.getElementById('badge-rate-echo');
+      const elDisplayInterestDay = document.getElementById('display-interest-day');
+
+      // DOM Elements - Deltas
+      const elBaselineLabel = document.getElementById('baseline-reference-label');
+      const elDeltaCashTitle = document.getElementById('delta-cash-title');
+      const elDeltaCashValue = document.getElementById('delta-cash-value');
+      const elDeltaCashSubtext = document.getElementById('delta-cash-subtext');
+      const elDeltaCardCash = document.getElementById('delta-card-cash');
+
+      const elDeltaInterestTitle = document.getElementById('delta-interest-title');
+      const elDeltaInterestValue = document.getElementById('delta-interest-value');
+      const elDeltaInterestSubtext = document.getElementById('delta-interest-subtext');
+      const elDeltaCardInterest = document.getElementById('delta-card-interest');
+
+      const elDeltaCccValue = document.getElementById('delta-ccc-value');
+      const elDeltaCccSubtext = document.getElementById('delta-ccc-subtext');
+      const elDeltaCardCcc = document.getElementById('delta-card-ccc');
+
+      const elOpportunityCallout = document.getElementById('opportunity-callout');
+
+      // DOM Elements - Visual Bar
+      const elBarAr = document.getElementById('bar-ar');
+      const elBarInv = document.getElementById('bar-inv');
+      const elBarAp = document.getElementById('bar-ap');
+      const elBarRatio = document.getElementById('bar-percentage-ratio');
+
+      // DOM Elements - Table
+      const elTableDso = document.getElementById('table-dso-days');
+      const elTableArBal = document.getElementById('table-ar-balance');
+      const elTableArCost = document.getElementById('table-ar-cost');
+      const elTableDio = document.getElementById('table-dio-days');
+      const elTableInvBal = document.getElementById('table-inv-balance');
+      const elTableInvCost = document.getElementById('table-inv-cost');
+      const elTableDpo = document.getElementById('table-dpo-days');
+      const elTableApBal = document.getElementById('table-ap-balance');
+      const elTableApCost = document.getElementById('table-ap-cost');
+      const elTableCcc = document.getElementById('table-ccc-days');
+      const elTableNwcBal = document.getElementById('table-nwc-balance');
+      const elTableNwcCost = document.getElementById('table-nwc-cost');
+
+      // DOM Elements - Sensitivity Matrix
+      const elSensDsoCash = document.getElementById('sens-dso-cash');
+      const elSensDsoInterest = document.getElementById('sens-dso-interest');
+      const elSensDioCash = document.getElementById('sens-dio-cash');
+      const elSensDioInterest = document.getElementById('sens-dio-interest');
+      const elSensDpoCash = document.getElementById('sens-dpo-cash');
+      const elSensDpoInterest = document.getElementById('sens-dpo-interest');
+
+      // Error Alert
+      const elErrorBanner = document.getElementById('error-banner');
+      const elErrorTitle = document.getElementById('error-title');
+      const elErrorDesc = document.getElementById('error-desc');
+      const elBtnDismissError = document.getElementById('btn-dismiss-error');
+
+      // Toast
+      const elToast = document.getElementById('toast');
+      const elToastMessage = document.getElementById('toast-message');
+
+      function showToast(msg) {
+        if (!elToast || !elToastMessage) return;
+        elToastMessage.textContent = msg;
+        elToast.classList.remove('opacity-0', 'translate-y-[-100px]', 'pointer-events-none');
+        elToast.classList.add('opacity-100', 'translate-y-0');
+        setTimeout(() => {
+          elToast.classList.remove('opacity-100', 'translate-y-0');
+          elToast.classList.add('opacity-0', 'translate-y-[-100px]', 'pointer-events-none');
+        }, 2500);
+      }
+
+      function formatCurrency(val) {
+        if (isNaN(val)) return '$0';
+        return new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+          maximumFractionDigits: 0,
+        }).format(val);
+      }
+
+      function formatNumber(val, decimals = 1) {
+        if (isNaN(val)) return '0';
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: decimals,
+          maximumFractionDigits: decimals,
+        }).format(val);
+      }
+
+      // Financial Calculation Core Engine
+      function computeMetrics(data) {
+        const revenue = Math.max(0, Number(data.revenue) || 0);
+        const cogs = Math.max(0, Number(data.cogs) || 0);
+        const dso = Math.max(0, Number(data.dso) || 0);
+        const dio = Math.max(0, Number(data.dio) || 0);
+        const dpo = Math.max(0, Number(data.dpo) || 0);
+        const rate = Math.max(0, Number(data.borrowingRate) || 0);
+
+        // Daily velocities (365-day basis)
+        const dailyRevenue = revenue / 365;
+        const dailyCogs = cogs / 365;
+
+        // Cash Conversion Cycle
+        const ccc = dso + dio - dpo;
+        const operatingCycle = dso + dio;
+
+        // Balances
+        const arBalance = dailyRevenue * dso;
+        const invBalance = dailyCogs * dio;
+        const apBalance = dailyCogs * dpo;
+
+        // Net Working Capital Tied Up
+        const netWorkingCapital = arBalance + invBalance - apBalance;
+
+        // Annual Carrying Cost
+        const annualFinancingCost = netWorkingCapital * (rate / 100);
+        const dailyFinancingCost = annualFinancingCost / 365;
+
+        // Working capital as % of revenue
+        const wcPercentOfRev = revenue > 0 ? (netWorkingCapital / revenue) * 100 : 0;
+
+        // Gross margin %
+        const grossMargin = revenue > 0 ? ((revenue - cogs) / revenue) * 100 : 0;
+
+        return {
+          revenue,
+          cogs,
+          dso,
+          dio,
+          dpo,
+          rate,
+          dailyRevenue,
+          dailyCogs,
+          ccc,
+          operatingCycle,
+          arBalance,
+          invBalance,
+          apBalance,
+          netWorkingCapital,
+          annualFinancingCost,
+          dailyFinancingCost,
+          wcPercentOfRev,
+          grossMargin,
+        };
+      }
+
+      // Input Validation
+      function validateInputs() {
+        const errors = [];
+        const rev = Number(elRevenue.value);
+        const cogs = Number(elCogs.value);
+        const dso = Number(elDso.value);
+        const dio = Number(elDio.value);
+        const dpo = Number(elDpo.value);
+        const rate = Number(elRate.value);
+
+        if (isNaN(rev) || rev < 0) errors.push('Annual Revenue must be a positive number.');
+        if (isNaN(cogs) || cogs < 0) errors.push('COGS must be a positive number.');
+        if (isNaN(dso) || dso < 0) errors.push('DSO days cannot be negative or invalid.');
+        if (isNaN(dio) || dio < 0) errors.push('DIO days cannot be negative or invalid.');
+        if (isNaN(dpo) || dpo < 0) errors.push('DPO days cannot be negative or invalid.');
+        if (isNaN(rate) || rate < 0) errors.push('Borrowing rate cannot be negative.');
+
+        if (cogs > rev && rev > 0) {
+          errors.push('Note: COGS exceeds Annual Revenue (Negative Gross Margin).');
+        }
+
+        if (errors.length > 0) {
+          elErrorBanner.classList.remove('hidden');
+          elErrorTitle.textContent = 'Input Notice / Validation';
+          elErrorDesc.textContent = errors.join(' ');
+        } else {
+          elErrorBanner.classList.add('hidden');
+        }
+      }
+
+      // Update UI with calculated figures
+      function render() {
+        validateInputs();
+
+        const current = computeMetrics(state);
+        const base = computeMetrics(baseline);
+
+        // Synchronize input fields
+        elRevenue.value = state.revenue;
+        elRevenueSlider.value = Math.min(state.revenue, 10000000);
+
+        elCogs.value = state.cogs;
+        elCogsSlider.value = Math.min(state.cogs, 8000000);
+
+        elDso.value = state.dso;
+        elDsoSlider.value = Math.min(state.dso, 120);
+
+        elDio.value = state.dio;
+        elDioSlider.value = Math.min(state.dio, 120);
+
+        elDpo.value = state.dpo;
+        elDpoSlider.value = Math.min(state.dpo, 120);
+
+        elRate.value = state.borrowingRate;
+        elRateSlider.value = state.borrowingRate;
+
+        // Update Left Column Previews
+        elLabelRevenueDaily.textContent = `${formatCurrency(current.dailyRevenue)} / day`;
+        elLabelCogsMargin.textContent = `Gross Margin: ${formatNumber(current.grossMargin, 1)}%`;
+        elLabelArPreview.textContent = `AR: ${formatCurrency(current.arBalance)}`;
+        elLabelInvPreview.textContent = `Inv: ${formatCurrency(current.invBalance)}`;
+        elLabelApPreview.textContent = `AP: ${formatCurrency(current.apBalance)}`;
+
+        // Card 1: CCC
+        elDisplayCcc.textContent = Math.round(current.ccc);
+        elDisplayCccFormula.textContent = `${Math.round(current.dso)} DSO + ${Math.round(current.dio)} DIO - ${Math.round(current.dpo)} DPO`;
+        elDisplayOpCycle.textContent = `${Math.round(current.operatingCycle)} days`;
+
+        // CCC Health Badge
+        if (current.ccc < 0) {
+          elBadgeCccHealth.textContent = 'Negative CCC (Lean)';
+          elBadgeCccHealth.className = 'text-[11px] font-semibold px-2 py-0.5 rounded text-sky-800 bg-sky-100';
+        } else if (current.ccc <= 35) {
+          elBadgeCccHealth.textContent = 'Excellent (<35d)';
+          elBadgeCccHealth.className = 'text-[11px] font-semibold px-2 py-0.5 rounded text-emerald-800 bg-emerald-100';
+        } else if (current.ccc <= 60) {
+          elBadgeCccHealth.textContent = 'Healthy (35-60d)';
+          elBadgeCccHealth.className = 'text-[11px] font-semibold px-2 py-0.5 rounded text-blue-800 bg-blue-100';
+        } else if (current.ccc <= 90) {
+          elBadgeCccHealth.textContent = 'Extended (60-90d)';
+          elBadgeCccHealth.className = 'text-[11px] font-semibold px-2 py-0.5 rounded text-amber-800 bg-amber-100';
+        } else {
+          elBadgeCccHealth.textContent = 'Critical (>90d)';
+          elBadgeCccHealth.className = 'text-[11px] font-semibold px-2 py-0.5 rounded text-rose-800 bg-rose-100';
+        }
+
+        // Card 2: Net Working Capital
+        elDisplayNwc.textContent = formatCurrency(current.netWorkingCapital);
+        elBadgeWcPercent.textContent = `${formatNumber(current.wcPercentOfRev, 1)}% Rev`;
+        elDisplayCapitalDay.textContent = `${formatCurrency(current.netWorkingCapital / (current.ccc === 0 ? 1 : Math.abs(current.ccc)))} / day`;
+
+        // Card 3: Carrying Cost
+        elDisplayCarryingCost.textContent = formatCurrency(Math.max(0, current.annualFinancingCost));
+        elBadgeRateEcho.textContent = `@ ${formatNumber(current.rate, 2)}%`;
+        elDisplayInterestDay.textContent = `${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(Math.max(0, current.dailyFinancingCost))} / day`;
+
+        // Baseline comparison label
+        elBaselineLabel.textContent = `Baseline CCC: ${Math.round(base.ccc)}d | WC: ${formatCurrency(base.netWorkingCapital)}`;
+
+        // Deltas (Baseline vs Current)
+        // Note: If Current WC < Base WC, cash is freed up (positive liquidity!)
+        const deltaWc = base.netWorkingCapital - current.netWorkingCapital; // Positive = Cash Freed Up
+        const deltaInterest = base.annualFinancingCost - current.annualFinancingCost; // Positive = Interest Saved
+        const deltaCccDays = current.ccc - base.ccc; // Negative = Faster cycle
+
+        // Delta 1: Cash Impact
+        if (Math.abs(deltaWc) < 1) {
+          elDeltaCashTitle.textContent = 'Cash Impact (Delta WC)';
+          elDeltaCashValue.textContent = '$0';
+          elDeltaCashValue.className = 'text-2xl font-bold font-mono tabular-nums text-slate-700';
+          elDeltaCashSubtext.textContent = 'Equal to baseline';
+          elDeltaCardCash.className = 'p-3.5 rounded-lg border border-slate-200 bg-slate-50 flex flex-col justify-between';
+        } else if (deltaWc > 0) {
+          elDeltaCashTitle.textContent = 'Cash Freed Up (Unlocked)';
+          elDeltaCashValue.textContent = `+${formatCurrency(deltaWc)}`;
+          elDeltaCashValue.className = 'text-2xl font-bold font-mono tabular-nums text-emerald-700';
+          elDeltaCashSubtext.textContent = 'Injected into cash reserves';
+          elDeltaCardCash.className = 'p-3.5 rounded-lg border border-emerald-200 bg-emerald-50/60 flex flex-col justify-between';
+        } else {
+          elDeltaCashTitle.textContent = 'Cash Trapped (Additional WC)';
+          elDeltaCashValue.textContent = `-${formatCurrency(Math.abs(deltaWc))}`;
+          elDeltaCashValue.className = 'text-2xl font-bold font-mono tabular-nums text-rose-700';
+          elDeltaCashSubtext.textContent = 'Requires external funding';
+          elDeltaCardCash.className = 'p-3.5 rounded-lg border border-rose-200 bg-rose-50/60 flex flex-col justify-between';
+        }
+
+        // Delta 2: Carrying Cost Savings
+        if (Math.abs(deltaInterest) < 1) {
+          elDeltaInterestTitle.textContent = 'Carrying Cost Savings';
+          elDeltaInterestValue.textContent = '$0 / yr';
+          elDeltaInterestValue.className = 'text-2xl font-bold font-mono tabular-nums text-slate-700';
+          elDeltaInterestSubtext.textContent = 'No interest change';
+          elDeltaCardInterest.className = 'p-3.5 rounded-lg border border-slate-200 bg-slate-50 flex flex-col justify-between';
+        } else if (deltaInterest > 0) {
+          elDeltaInterestTitle.textContent = 'Annual Interest Saved';
+          elDeltaInterestValue.textContent = `+${formatCurrency(deltaInterest)} / yr`;
+          elDeltaInterestValue.className = 'text-2xl font-bold font-mono tabular-nums text-emerald-700';
+          elDeltaInterestSubtext.textContent = `Savings @ ${formatNumber(current.rate, 1)}% APR`;
+          elDeltaCardInterest.className = 'p-3.5 rounded-lg border border-emerald-200 bg-emerald-50/60 flex flex-col justify-between';
+        } else {
+          elDeltaInterestTitle.textContent = 'Added Borrowing Surcharge';
+          elDeltaInterestValue.textContent = `+${formatCurrency(Math.abs(deltaInterest))} / yr`;
+          elDeltaInterestValue.className = 'text-2xl font-bold font-mono tabular-nums text-rose-700';
+          elDeltaInterestSubtext.textContent = `Extra interest drag`;
+          elDeltaCardInterest.className = 'p-3.5 rounded-lg border border-rose-200 bg-rose-50/60 flex flex-col justify-between';
+        }
+
+        // Delta 3: CCC Duration Delta
+        if (Math.abs(deltaCccDays) < 0.5) {
+          elDeltaCccValue.textContent = '0 days';
+          elDeltaCccValue.className = 'text-2xl font-bold font-mono tabular-nums text-slate-700';
+          elDeltaCccSubtext.textContent = 'Same cycle speed as baseline';
+          elDeltaCardCcc.className = 'p-3.5 rounded-lg border border-slate-200 bg-slate-50 flex flex-col justify-between';
+        } else if (deltaCccDays < 0) {
+          elDeltaCccValue.textContent = `${Math.round(deltaCccDays)} days`;
+          elDeltaCccValue.className = 'text-2xl font-bold font-mono tabular-nums text-emerald-700';
+          elDeltaCccSubtext.textContent = 'Faster cash turnaround';
+          elDeltaCardCcc.className = 'p-3.5 rounded-lg border border-emerald-200 bg-emerald-50/60 flex flex-col justify-between';
+        } else {
+          elDeltaCccValue.textContent = `+${Math.round(deltaCccDays)} days`;
+          elDeltaCccValue.className = 'text-2xl font-bold font-mono tabular-nums text-amber-700';
+          elDeltaCccSubtext.textContent = 'Slower operating cycle';
+          elDeltaCardCcc.className = 'p-3.5 rounded-lg border border-amber-200 bg-amber-50/60 flex flex-col justify-between';
+        }
+
+        // 1-Day Sensitivity Rule of Thumb
+        const oneDayRevCash = current.dailyRevenue;
+        const oneDayInterest = oneDayRevCash * (current.rate / 100);
+        elOpportunityCallout.innerHTML = `<strong>Sensitivity Rule of Thumb:</strong> Every 1-day reduction in DSO frees up <strong>${formatCurrency(oneDayRevCash)}</strong> in cash and saves <strong>${formatCurrency(oneDayInterest)}/year</strong> in carrying interest at ${formatNumber(current.rate, 1)}% APR.`;
+
+        // Visual Proportion Bar
+        const grossAssets = current.arBalance + current.invBalance;
+        if (grossAssets > 0) {
+          const arPct = Math.round((current.arBalance / grossAssets) * 100);
+          const invPct = 100 - arPct;
+          elBarAr.style.width = `${arPct}%`;
+          elBarInv.style.width = `${invPct}%`;
+          const apCoveragePct = Math.round((current.apBalance / grossAssets) * 100);
+          elBarRatio.textContent = `Suppliers finance ${apCoveragePct}% of gross operating assets`;
+        }
+
+        // Table updates
+        elTableDso.textContent = `${Math.round(current.dso)} d`;
+        elTableArBal.textContent = formatCurrency(current.arBalance);
+        elTableArCost.textContent = formatCurrency(current.arBalance * (current.rate / 100));
+
+        elTableDio.textContent = `${Math.round(current.dio)} d`;
+        elTableInvBal.textContent = formatCurrency(current.invBalance);
+        elTableInvCost.textContent = formatCurrency(current.invBalance * (current.rate / 100));
+
+        elTableDpo.textContent = `${Math.round(current.dpo)} d`;
+        elTableApBal.textContent = `(${formatCurrency(current.apBalance)})`;
+        const apInterestSaved = current.apBalance * (current.rate / 100);
+        elTableApCost.textContent = `-${formatCurrency(apInterestSaved)} saved`;
+
+        elTableCcc.textContent = `${Math.round(current.ccc)} d (CCC)`;
+        elTableNwcBal.textContent = formatCurrency(current.netWorkingCapital);
+        elTableNwcCost.textContent = formatCurrency(Math.max(0, current.annualFinancingCost));
+
+        // Sensitivity Matrix (5-day adjustments)
+        const dso5Cash = current.dailyRevenue * 5;
+        const dso5Interest = dso5Cash * (current.rate / 100);
+        elSensDsoCash.textContent = `+${formatCurrency(dso5Cash)}`;
+        elSensDsoInterest.textContent = `${formatCurrency(dso5Interest)} / yr`;
+
+        const dio5Cash = current.dailyCogs * 5;
+        const dio5Interest = dio5Cash * (current.rate / 100);
+        elSensDioCash.textContent = `+${formatCurrency(dio5Cash)}`;
+        elSensDioInterest.textContent = `${formatCurrency(dio5Interest)} / yr`;
+
+        const dpo5Cash = current.dailyCogs * 5;
+        const dpo5Interest = dpo5Cash * (current.rate / 100);
+        elSensDpoCash.textContent = `+${formatCurrency(dpo5Cash)}`;
+        elSensDpoInterest.textContent = `${formatCurrency(dpo5Interest)} / yr`;
+      }
+
+      // Event Listeners for synchronized Inputs and Sliders
+      function bindSync(inputEl, sliderEl, key, parser = Number) {
+        inputEl.addEventListener('input', () => {
+          const val = parser(inputEl.value);
+          state[key] = isNaN(val) ? 0 : Math.max(0, val);
+          sliderEl.value = state[key];
+          render();
+        });
+
+        sliderEl.addEventListener('input', () => {
+          state[key] = parser(sliderEl.value);
+          inputEl.value = state[key];
+          render();
+        });
+      }
+
+      bindSync(elRevenue, elRevenueSlider, 'revenue');
+      bindSync(elCogs, elCogsSlider, 'cogs');
+      bindSync(elDso, elDsoSlider, 'dso');
+      bindSync(elDio, elDioSlider, 'dio');
+      bindSync(elDpo, elDpoSlider, 'dpo');
+      bindSync(elRate, elRateSlider, 'borrowingRate', parseFloat);
+
+      // Reset to defaults
+      document.getElementById('btn-reset-defaults').addEventListener('click', () => {
+        state = { ...DEFAULTS };
+        render();
+        showToast('Reset to default scenario values');
+      });
+
+      // Set current as baseline
+      document.getElementById('btn-save-baseline').addEventListener('click', () => {
+        baseline = { ...state };
+        render();
+        showToast('Current inputs saved as comparison baseline');
+      });
+
+      // Quick Optimize button
+      document.getElementById('btn-quick-optimize').addEventListener('click', () => {
+        state.dso = Math.max(0, state.dso - 10);
+        state.dio = Math.max(0, state.dio - 5);
+        state.dpo = Math.max(0, state.dpo + 5);
+        render();
+        showToast('Applied Lean optimization: -10 DSO, -5 DIO, +5 DPO');
+      });
+
+      // Industry Presets
+      document.querySelectorAll('.btn-preset').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const presetKey = btn.getAttribute('data-preset');
+          if (PRESETS[presetKey]) {
+            state = { ...PRESETS[presetKey] };
+            render();
+            showToast(`Loaded ${btn.textContent.trim()} benchmark`);
+          }
+        });
+      });
+
+      // Dismiss error
+      elBtnDismissError.addEventListener('click', () => {
+        elErrorBanner.classList.add('hidden');
+      });
+
+      // Export / Copy Text Summary
+      document.getElementById('btn-export-summary').addEventListener('click', () => {
+        const cur = computeMetrics(state);
+        const base = computeMetrics(baseline);
+        const deltaWc = base.netWorkingCapital - cur.netWorkingCapital;
+        const deltaInterest = base.annualFinancingCost - cur.annualFinancingCost;
+
+        const summaryText = `--- WORKING CAPITAL & CASH CONVERSION CYCLE (CCC) ANALYSIS ---
+Generated: ${new Date().toLocaleDateString()}
+
+OPERATING ASSUMPTIONS:
+• Annual Revenue: ${formatCurrency(cur.revenue)} ($${formatNumber(cur.dailyRevenue, 0)}/day)
+• Cost of Goods Sold (COGS): ${formatCurrency(cur.cogs)} ($${formatNumber(cur.dailyCogs, 0)}/day)
+• Days Sales Outstanding (DSO): ${Math.round(cur.dso)} days
+• Days Inventory Outstanding (DIO): ${Math.round(cur.dio)} days
+• Days Payable Outstanding (DPO): ${Math.round(cur.dpo)} days
+• Short-Term Borrowing Rate: ${formatNumber(cur.rate, 2)}%
+
+KEY METRICS & CYCLE SPEED:
+• Operating Cycle (DSO + DIO): ${Math.round(cur.operatingCycle)} days
+• Cash Conversion Cycle (CCC): ${Math.round(cur.ccc)} days
+• Accounts Receivable Balance: ${formatCurrency(cur.arBalance)}
+• Inventory Stock Balance: ${formatCurrency(cur.invBalance)}
+• Accounts Payable Balance: ${formatCurrency(cur.apBalance)}
+• Net Working Capital Tied Up: ${formatCurrency(cur.netWorkingCapital)} (${formatNumber(cur.wcPercentOfRev, 1)}% of Revenue)
+• Annual Carrying Cost: ${formatCurrency(cur.annualFinancingCost)}/yr ($${formatNumber(cur.dailyFinancingCost, 2)}/day)
+
+WHAT-IF SCENARIO IMPACT VS BASELINE:
+• Cash Impact: ${deltaWc >= 0 ? 'Freed Up +' : 'Trapped -'}${formatCurrency(Math.abs(deltaWc))}
+• Carrying Cost Savings: ${deltaInterest >= 0 ? '+' : '-'}${formatCurrency(Math.abs(deltaInterest))}/yr
+• CCC Duration Delta: ${cur.ccc - base.ccc >= 0 ? '+' : ''}${Math.round(cur.ccc - base.ccc)} days
+-------------------------------------------------------------`;
+
+        navigator.clipboard.writeText(summaryText).then(() => {
+          showToast('Executive summary copied to clipboard');
+        }).catch(() => {
+          showToast('Could not copy to clipboard');
+        });
+      });
+
+      // Print / PDF
+      document.getElementById('btn-print').addEventListener('click', () => {
+        window.print();
+      });
+
+      // Accessibility: Support mobile tap on tooltips
+      document.querySelectorAll('.has-tooltip').forEach((el) => {
+        el.addEventListener('click', (e) => {
+          const content = el.querySelector('.tooltip-content');
+          if (content) {
+            content.classList.toggle('is-open');
+            e.stopPropagation();
+          }
+        });
+      });
+
+      document.addEventListener('click', () => {
+        document.querySelectorAll('.tooltip-content.is-open').forEach((el) => {
+          el.classList.remove('is-open');
+        });
+      });
+
+      // Initial Render
+      render();
+    })();
+  </script>
+</body>
+</html>
